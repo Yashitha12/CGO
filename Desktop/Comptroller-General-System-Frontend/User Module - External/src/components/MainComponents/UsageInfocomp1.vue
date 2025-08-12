@@ -284,17 +284,50 @@ export default {
             this.componentSinNumber
           );
 
+          // Get component name dynamically from session storage or determine from component type
+          const componentName = this.getComponentNameFromSession();
+
+          // Prepare component data for summary
+          const componentData = {
+            name: componentName, // Use dynamic component name
+            constructionStatus:
+              this.completedConstructionData.startedYearStatus === "Yes" &&
+              this.completedConstructionData.completedYearStatus === "Yes"
+                ? "Completed"
+                : "In Progress",
+            reason: this.completedConstructionData.reason || null,
+            physicalProgress: this.completedConstructionData.physicalProgress || null,
+            financialProgress: this.completedConstructionData.financialProgress || null,
+            estimatedCost: this.completedConstructionData.estimatedCost || null,
+            costIncurred: this.completedConstructionData.constructionCost || null,
+            contractors: this.completedConstructionData.contractors || null,
+            consultants: this.completedConstructionData.consultants || null,
+            sinNumber: this.componentSinNumber,
+            statusOfUsage: this.status,
+            hasValuation: this.valuation === "Yes",
+            valuationValue: this.valuationValue,
+            valuationDate: this.valuationDate,
+            remarks: this.remarks,
+          };
+
+          // Store component data for summary page
+          const existingComponents = JSON.parse(
+            sessionStorage.getItem("savedComponents") || "[]"
+          );
+          existingComponents.push(componentData);
+          sessionStorage.setItem("savedComponents", JSON.stringify(existingComponents));
+
           // Show success message
           Swal.fire({
             icon: "success",
             title: "All Data Saved Successfully!",
             text: `Construction and usage information saved for Component SIN: ${this.componentSinNumber}`,
-            confirmButtonText: "Continue",
+            confirmButtonText: "View Summary",
             confirmButtonColor: "#4c59b0",
+          }).then(() => {
+            // Navigate to summary page
+            this.$router.push("/components/summery");
           });
-
-          // Navigate to main page
-          this.$router.push("/components/main");
         } catch (error) {
           console.error("Error saving all data:", error);
 
@@ -369,6 +402,43 @@ export default {
           this.isSaving = false;
         }
       }
+    },
+    // Add this new method to determine component name
+    getComponentNameFromSession() {
+      // Try to get component type from session storage
+      const componentType =
+        sessionStorage.getItem("currentComponentType") ||
+        sessionStorage.getItem("selectedComponentType") ||
+        sessionStorage.getItem("componentType");
+
+      // If we have a component type, map it to display name
+      if (componentType) {
+        const componentMap = {
+          runway: "Runway",
+          taxiway: "Taxiway",
+          apron: "Apron",
+          airtrafficcontroltower: "Air Traffic Control Tower",
+          radartower: "Radar Tower",
+          hanger: "Hanger",
+          other: "Other",
+        };
+        return componentMap[componentType] || componentType;
+      }
+
+      // If no component type found, try to determine from SIN number pattern
+      const sinNumber = this.componentSinNumber;
+      if (sinNumber) {
+        if (sinNumber.includes("RUN")) return "Runway";
+        if (sinNumber.includes("TAX")) return "Taxiway";
+        if (sinNumber.includes("APR")) return "Apron";
+        if (sinNumber.includes("ATC")) return "Air Traffic Control Tower";
+        if (sinNumber.includes("RAD")) return "Radar Tower";
+        if (sinNumber.includes("HAN")) return "Hanger";
+        if (sinNumber.includes("OTH")) return "Other";
+      }
+
+      // Default fallback
+      return "Component";
     },
   },
 };

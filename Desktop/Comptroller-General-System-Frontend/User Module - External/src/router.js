@@ -350,8 +350,8 @@ const routes = [
   },
   {
     //Summery of Components
-    path: "/components/summery",
-    name: "ComponentsSummery",
+    path: "/components/summary", // Changed from "/components/summery"
+    name: "ComponentsSummary", // Also updated the name for consistency
     component: SummeryOfComponents,
   },
   {

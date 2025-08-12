@@ -272,29 +272,35 @@ export default {
 
           console.log("API Response:", response.data);
 
-          // Clear session storage after successful save
+          // Store the complete saved data for summary page
+          const summaryData = {
+            ...combinedData,
+            savedAt: new Date().toISOString(),
+            apiResponse: response.data,
+          };
+
+          sessionStorage.setItem("savedComponentData", JSON.stringify(summaryData));
+
+          // Clear construction session data after successful save
           sessionStorage.removeItem("completedConstructionData");
           sessionStorage.removeItem("componentSinNumber");
           sessionStorage.removeItem("newComponentSin");
           sessionStorage.removeItem("latestSinNumber");
           sessionStorage.removeItem("constructionComponentSin");
           sessionStorage.setItem("constructionSubmissionComplete", "true");
-          sessionStorage.setItem(
-            "submittedComponentSin",
-            this.componentSinNumber
-          );
+          sessionStorage.setItem("submittedComponentSin", this.componentSinNumber);
 
-          // Show success message
+          // Show success message and redirect to summary page
           Swal.fire({
             icon: "success",
             title: "All Data Saved Successfully!",
             text: `Construction and usage information saved for Component SIN: ${this.componentSinNumber}`,
-            confirmButtonText: "Continue",
+            confirmButtonText: "View Summary",
             confirmButtonColor: "#4c59b0",
+          }).then(() => {
+            // Navigate to summary page instead of main
+            this.$router.push("/components/summary");
           });
-
-          // Navigate to main page
-          this.$router.push("/components/main");
         } catch (error) {
           console.error("Error saving all data:", error);
 

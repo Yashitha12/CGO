@@ -63,6 +63,7 @@
     </div>
 
     <div class="form-row center">
+      <button @click="goBack" class="back-button">BACK</button>
       <button @click="saveData" class="next-button" :disabled="isSaving">
         {{ isSaving ? "SAVING..." : "SAVE" }}
       </button>
@@ -253,7 +254,7 @@ export default {
           // Set up headers with authentication token
           const headers = {
             Authorization:
-              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NDk2ODEyMywiZXhwIjoxNzU1MDU0NTIzfQ.18bwnDxBISf3T02JXhucE_BGHDRkFDouyyVSoNeyP4qrwbHvYd9Sp8t7GiGkv8ha8oc42TD91T6G220_lvRuBA",
+              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NTA1NjI0NSwiZXhwIjoxNzU1MTQyNjQ1fQ.XaG5VRb41E8lqzuwAmQMA0DKmpdQlsJ5iWqBp_WFgsj2-I8ub-pftUsjSKHI84t-m_GFzksUIP1u_8v4LBXbfQ",
             "Content-Type": "application/json",
             Accept: "application/json",
           };
@@ -272,35 +273,28 @@ export default {
 
           console.log("API Response:", response.data);
 
-          // Store the complete saved data for summary page
-          const summaryData = {
-            ...combinedData,
-            savedAt: new Date().toISOString(),
-            apiResponse: response.data,
-          };
-
-          sessionStorage.setItem("savedComponentData", JSON.stringify(summaryData));
-
-          // Clear construction session data after successful save
+          // Clear session storage after successful save
           sessionStorage.removeItem("completedConstructionData");
           sessionStorage.removeItem("componentSinNumber");
           sessionStorage.removeItem("newComponentSin");
           sessionStorage.removeItem("latestSinNumber");
           sessionStorage.removeItem("constructionComponentSin");
           sessionStorage.setItem("constructionSubmissionComplete", "true");
-          sessionStorage.setItem("submittedComponentSin", this.componentSinNumber);
+          sessionStorage.setItem(
+            "submittedComponentSin",
+            this.componentSinNumber
+          );
 
-          // Show success message and redirect to summary page
+          // Show success message
           Swal.fire({
             icon: "success",
             title: "All Data Saved Successfully!",
             text: `Construction and usage information saved for Component SIN: ${this.componentSinNumber}`,
-            confirmButtonText: "View Summary",
+            confirmButtonText: "Continue",
             confirmButtonColor: "#4c59b0",
-          }).then(() => {
-            // Navigate to summary page instead of main
-            this.$router.push("/components/summary");
           });
+
+          // Stay on the same page - removed navigation to main page
         } catch (error) {
           console.error("Error saving all data:", error);
 
@@ -376,6 +370,9 @@ export default {
         }
       }
     },
+    goBack() {
+      this.$router.push("/components/chosen");
+    },
   },
 };
 </script>
@@ -413,6 +410,7 @@ export default {
 .center {
   display: flex;
   justify-content: center;
+  gap: 15px;
 }
 .info-text1 {
   font-size: 0.9em;
@@ -452,6 +450,21 @@ export default {
 .next-button:disabled {
   background-color: #666;
   cursor: not-allowed;
+}
+.back-button {
+  background-color: #6c757d;
+  color: white;
+  padding: 8px 30px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+.back-button:hover {
+  background-color: #5a6268;
 }
 /* Responsive design */
 @media (max-width: 768px) {

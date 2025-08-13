@@ -11,17 +11,6 @@
       />
     </div>
 
-    <!-- Display New Generated SIN Number after save -->
-    <div class="form-row" v-if="newGeneratedSin">
-      <label>New Generated SIN:</label>
-      <input
-        type="text"
-        :value="newGeneratedSin"
-        readonly
-        class="new-sin-display"
-      />
-    </div>
-
     <div class="form-row">
       <label>Status of Usage:</label>
       <select v-model="status" required>
@@ -73,6 +62,7 @@
     </div>
 
     <div class="form-row center">
+      <button @click="goBack" class="back-button">BACK</button>
       <button @click="saveData" class="next-button" :disabled="isSaving">
         {{ isSaving ? "SAVING..." : "NEXT" }}
       </button>
@@ -89,7 +79,6 @@ export default {
   data() {
     return {
       componentSinNumber: "", // Component SIN from radar tower
-      newGeneratedSin: "", // New SIN generated after save
       status: "",
       valuation: "",
       valuationValue: "",
@@ -148,6 +137,18 @@ export default {
       }
     },
     async saveData() {
+      // Validate required fields
+      if (!this.componentSinNumber) {
+        Swal.fire({
+          icon: "error",
+          title: "Component SIN Number Required",
+          text: "Component SIN number is missing. Please complete the component form first.",
+          confirmButtonText: "Okay",
+          confirmButtonColor: "#4c59b0",
+        });
+        return;
+      }
+
       if (
         !this.status ||
         !this.valuation ||
@@ -191,56 +192,79 @@ export default {
           }
 
           const constructionData = JSON.parse(constructionDataString);
-          const currentDate = new Date().toISOString();
+          console.log("Construction data from session:", constructionData);
 
-          // Prepare complete project data with all session data
+          // Prepare API-compliant data structure
           const completeProjectData = {
-            // Include component SIN from radar tower
-            componentSinNumber: this.componentSinNumber,
+            // Component identification
+            sinNumber: this.componentSinNumber, // Changed from componentSinNumber to sinNumber
 
-            // All construction data from NotCompletedConstructionModel session
-            reasonForNotCompletion: constructionData.reasonForNotCompletion,
-            costKnownStatus: constructionData.costKnownStatus,
-            totalEstimatedCost: constructionData.totalEstimatedCost,
-            costIncurredKnownStatus: constructionData.costIncurredKnownStatus,
-            costIncurred: constructionData.costIncurred,
-            costIncurredDate: constructionData.costIncurredDate,
-            constructionStartedYear: constructionData.constructionStartedYear,
+            // Construction data - ensure all numeric values are properly converted
+            reasonForNotCompletion:
+              constructionData.reasonForNotCompletion || "",
+            costKnownStatus: constructionData.costKnownStatus || "Unknown",
+            totalEstimatedCost: constructionData.totalEstimatedCost
+              ? parseFloat(constructionData.totalEstimatedCost)
+              : 0,
+            costIncurredKnownStatus:
+              constructionData.costIncurredKnownStatus || "Unknown",
+            costIncurred: constructionData.costIncurred
+              ? parseFloat(constructionData.costIncurred)
+              : 0,
+            costIncurredDate: constructionData.costIncurredDate || null,
+            constructionStartedYear: constructionData.constructionStartedYear
+              ? parseInt(constructionData.constructionStartedYear)
+              : null,
             constructionStartedKnownStatus:
-              constructionData.constructionStartedKnownStatus,
-            expectedCompletionYear: constructionData.expectedCompletionYear,
+              constructionData.constructionStartedKnownStatus || "Unknown",
+            expectedCompletionYear: constructionData.expectedCompletionYear
+              ? parseInt(constructionData.expectedCompletionYear)
+              : null,
             expectedCompletionKnownStatus:
-              constructionData.expectedCompletionKnownStatus,
+              constructionData.expectedCompletionKnownStatus || "Unknown",
             physicalProgressPercentage:
-              constructionData.physicalProgressPercentage,
+              constructionData.physicalProgressPercentage
+                ? parseFloat(constructionData.physicalProgressPercentage)
+                : 0,
             financialProgressPercentage:
-              constructionData.financialProgressPercentage,
-            totalFunding: constructionData.totalFunding,
-            fundingSources: constructionData.fundingSources,
-            needAdditionalFunding: constructionData.needAdditionalFunding,
-            additionalFundingAmount: constructionData.additionalFundingAmount,
-            contractorName: constructionData.contractorName,
-            consultantName: constructionData.consultantName,
-            createdAt: constructionData.createdAt,
+              constructionData.financialProgressPercentage
+                ? parseFloat(constructionData.financialProgressPercentage)
+                : 0,
+            totalFunding: constructionData.totalFunding
+              ? parseFloat(constructionData.totalFunding)
+              : 0,
+            fundingSources: Array.isArray(constructionData.fundingSources)
+              ? constructionData.fundingSources
+              : [],
+            needAdditionalFunding:
+              constructionData.needAdditionalFunding === "Yes" ||
+              constructionData.needAdditionalFunding === true,
+            additionalFundingAmount: constructionData.additionalFundingAmount
+              ? parseFloat(constructionData.additionalFundingAmount)
+              : 0,
+            contractorName: constructionData.contractorName || "",
+            consultantName: constructionData.consultantName || "",
 
             // Usage information from current form
             statusOfUsage: this.status,
             hasValuation: this.valuation === "Yes",
-            valuationValue:
-              this.valuation === "Yes" ? parseFloat(this.valuationValue) : null,
+            valuationValue: parseFloat(this.valuationValue) || 0,
             valuationDate: this.valuationDate,
             remarks: this.remarks || "",
-            updatedAt: currentDate,
+
+            // Add local/foreign funding agency if it exists
+            local_Foreign_Funding_Agency:
+              constructionData.local_Foreign_Funding_Agency || "",
           };
 
-          console.log("All session data retrieved:");
-          console.log("- Component SIN:", this.componentSinNumber);
-          console.log("- Construction data:", constructionData);
-          console.log("- Complete project data to save:", completeProjectData);
+          console.log(
+            "Complete project data to save:",
+            JSON.stringify(completeProjectData, null, 2)
+          );
 
           const headers = {
             Authorization:
-              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NDk2ODEyMywiZXhwIjoxNzU1MDU0NTIzfQ.18bwnDxBISf3T02JXhucE_BGHDRkFDouyyVSoNeyP4qrwbHvYd9Sp8t7GiGkv8ha8oc42TD91T6G220_lvRuBA",
+              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NTA1NjI0NSwiZXhwIjoxNzU1MTQyNjQ1fQ.XaG5VRb41E8lqzuwAmQMA0DKmpdQlsJ5iWqBp_WFgsj2-I8ub-pftUsjSKHI84t-m_GFzksUIP1u_8v4LBXbfQ",
             "Content-Type": "application/json",
             Accept: "application/json",
           };
@@ -253,49 +277,49 @@ export default {
 
           console.log("API Response:", response.data);
 
-          // Extract new generated SIN from response
-          if (response.data && response.data.sinNumber) {
-            this.newGeneratedSin = response.data.sinNumber;
-            // Store new SIN in session for other components
-            sessionStorage.setItem("newGeneratedSin", this.newGeneratedSin);
-          } else if (response.data && response.data.id) {
-            this.newGeneratedSin = response.data.id;
-            sessionStorage.setItem("newGeneratedSin", this.newGeneratedSin);
-          }
-
           // Clear construction session data after successful save
           sessionStorage.removeItem("notCompletedConstructionData");
 
           Swal.fire({
             icon: "success",
             title: "Project Information Saved Successfully!",
-            html: this.newGeneratedSin
-              ? `<p>New Generated SIN: <strong style="color: #28a745;">${this.newGeneratedSin}</strong></p>`
-              : "",
             confirmButtonText: "Continue",
             confirmButtonColor: "#4c59b0",
           });
-
-          // Don't navigate immediately to show the new SIN number
-          // this.$router.push("/components/main");
         } catch (error) {
           console.error("Error saving project information:", error);
+          console.error("Error details:", {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            config: error.config,
+          });
 
           let errorTitle = "Error saving project information";
           let errorMessage = "Something went wrong. Please try again.";
 
-          if (
-            error.message &&
-            error.message.includes("Construction data not found")
-          ) {
-            errorTitle = "Construction Data Missing";
-            errorMessage =
-              "Please complete the construction information first.";
-            this.$router.push("/construction/not-completed");
-            return;
-          }
-
-          if (error.response?.status === 409) {
+          if (error.response?.status === 400) {
+            errorTitle = "Invalid Data";
+            if (
+              error.response.data?.message?.includes(
+                "SIN number is not verified"
+              )
+            ) {
+              errorMessage = `The Component SIN number "${this.componentSinNumber}" is not verified in the system. Please ensure the component has been properly saved and verified before proceeding.`;
+            } else {
+              errorMessage =
+                error.response.data?.message ||
+                error.response.data?.error ||
+                "Please check your form data and try again.";
+              // Log detailed validation errors
+              if (error.response.data?.details) {
+                console.error(
+                  "Validation errors:",
+                  error.response.data.details
+                );
+              }
+            }
+          } else if (error.response?.status === 409) {
             errorTitle = "Data Conflict";
             errorMessage =
               error.response.data?.message ||
@@ -303,12 +327,6 @@ export default {
           } else if (error.response?.status === 401) {
             errorTitle = "Authentication Error";
             errorMessage = "Your session has expired. Please login again.";
-          } else if (error.response?.status === 400) {
-            errorTitle = "Invalid Data";
-            errorMessage =
-              error.response.data?.message ||
-              error.response.data?.error ||
-              "Please check your form data and try again.";
           } else if (error.response?.status === 403) {
             errorTitle = "Access Denied";
             errorMessage = "You don't have permission to perform this action.";
@@ -319,8 +337,6 @@ export default {
             errorTitle = "Request Timeout";
             errorMessage =
               "The request took too long. Please check your connection.";
-          } else if (error.response?.data?.message) {
-            errorMessage = error.response.data.message;
           }
 
           Swal.fire({
@@ -334,6 +350,9 @@ export default {
           this.isSaving = false;
         }
       }
+    },
+    goBack() {
+      this.$router.push("/components/chosen");
     },
   },
 };
@@ -365,6 +384,22 @@ export default {
 .center {
   display: flex;
   justify-content: center;
+  gap: 15px;
+}
+.back-button {
+  background-color: #6c757d;
+  color: white;
+  padding: 8px 30px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+.back-button:hover {
+  background-color: #5a6268;
 }
 .info-text1,
 .info-text2 {
@@ -400,12 +435,6 @@ export default {
   border: 2px solid #28a745 !important;
   font-weight: bold;
   color: #155724;
-}
-.new-sin-display {
-  background-color: #fff3cd;
-  border: 2px solid #ffc107 !important;
-  font-weight: bold;
-  color: #856404;
 }
 @media (max-width: 768px) {
   .form-container {

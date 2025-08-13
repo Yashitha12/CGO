@@ -349,10 +349,10 @@ const routes = [
     component: OtherComponent,
   },
   {
-    //Summery of Components
-    path: "/components/summery",
-    name: "ComponentsSummery",
-    component: SummeryOfComponents,
+     //Summary of Components
+    path: "/components/summary",
+    name: "ComponentsSummary",
+    component: SummaryOfComponents,
   },
   {
     //Air Field Dashboard

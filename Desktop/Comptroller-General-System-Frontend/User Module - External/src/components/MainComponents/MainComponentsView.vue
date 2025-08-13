@@ -102,12 +102,14 @@ export default {
   },
   methods: {
     getSinFromSession() {
-      // Get SIN number from different possible session storage keys
+      // Get SIN number with priority order - airfield runway SIN first
       this.sinNumber =
         sessionStorage.getItem("airfieldSinNumber") ||
         sessionStorage.getItem("sinCode") ||
         sessionStorage.getItem("sinNumber") ||
         sessionStorage.getItem("generatedSinCode") ||
+        sessionStorage.getItem("currentSinNumber") ||
+        sessionStorage.getItem("activeSinNumber") ||
         sessionStorage.getItem("submittedSinNumber") ||
         localStorage.getItem("airfieldSinNumber") ||
         localStorage.getItem("sinCode") ||
@@ -131,6 +133,8 @@ export default {
       } else {
         // Store the SIN number in session storage for components selection
         sessionStorage.setItem("currentSinNumber", this.sinNumber);
+        // Also ensure airfieldSinNumber is set for consistency
+        sessionStorage.setItem("airfieldSinNumber", this.sinNumber);
         console.log("SIN number stored for components:", this.sinNumber);
       }
     },
@@ -184,7 +188,7 @@ export default {
           // Set up headers with authentication token
           const headers = {
             Authorization:
-              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NDk2ODEyMywiZXhwIjoxNzU1MDU0NTIzfQ.18bwnDxBISf3T02JXhucE_BGHDRkFDouyyVSoNeyP4qrwbHvYd9Sp8t7GiGkv8ha8oc42TD91T6G220_lvRuBA",
+              "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJpc3VydSIsImlhdCI6MTc1NTA1NjI0NSwiZXhwIjoxNzU1MTQyNjQ1fQ.XaG5VRb41E8lqzuwAmQMA0DKmpdQlsJ5iWqBp_WFgsj2-I8ub-pftUsjSKHI84t-m_GFzksUIP1u_8v4LBXbfQ",
             "Content-Type": "application/json",
             Accept: "application/json",
           };

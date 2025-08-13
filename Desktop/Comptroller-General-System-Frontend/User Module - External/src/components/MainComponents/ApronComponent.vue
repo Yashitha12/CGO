@@ -229,18 +229,48 @@ export default {
       }
 
       try {
-        const baseSin = getSessionBaseSin();
+        // Get base SIN using the same logic as other components
+        const baseSin =
+          sessionStorage.getItem("currentSinNumber") ||
+          sessionStorage.getItem("activeSinNumber") ||
+          sessionStorage.getItem("airfieldSinNumber") ||
+          sessionStorage.getItem("sinCode") ||
+          sessionStorage.getItem("sinNumber") ||
+          sessionStorage.getItem("generatedSinCode") ||
+          sessionStorage.getItem("submittedSinNumber") ||
+          localStorage.getItem("airfieldSinNumber") ||
+          localStorage.getItem("sinCode") ||
+          localStorage.getItem("sinNumber") ||
+          localStorage.getItem("generatedSinCode") ||
+          "";
+
+        console.log("Retrieved base SIN:", baseSin);
+
         const jwtToken = JWT_TOKEN.jwtToken;
 
         if (!baseSin) {
           console.error("Base SIN not found in session");
-          alert("Base SIN not found. Please complete the airfield form first.");
+          Swal.fire({
+            icon: "warning",
+            title: "SIN Number Not Found",
+            text: "No SIN number found. Please complete the previous steps first.",
+            confirmButtonText: "Go Back",
+            confirmButtonColor: "#4c59b0",
+          }).then(() => {
+            this.$router.push("/components/main");
+          });
           return;
         }
 
         if (!jwtToken) {
           console.error("JWT token not found");
-          alert("Authentication token not found. Please login again.");
+          Swal.fire({
+            icon: "error",
+            title: "Authentication Error",
+            text: "Authentication token not found. Please login again.",
+            confirmButtonText: "Okay",
+            confirmButtonColor: "#4c59b0",
+          });
           return;
         }
 

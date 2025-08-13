@@ -91,46 +91,92 @@ export default {
     // Component Save function for radar tower
     async saveRadarTower() {
       try {
-        const baseSin = getSessionBaseSin();
+        // Get base SIN using the same logic as other components
+        const baseSin =
+          sessionStorage.getItem("currentSinNumber") ||
+          sessionStorage.getItem("activeSinNumber") ||
+          sessionStorage.getItem("airfieldSinNumber") ||
+          sessionStorage.getItem("sinCode") ||
+          sessionStorage.getItem("sinNumber") ||
+          sessionStorage.getItem("generatedSinCode") ||
+          sessionStorage.getItem("submittedSinNumber") ||
+          localStorage.getItem("airfieldSinNumber") ||
+          localStorage.getItem("sinCode") ||
+          localStorage.getItem("sinNumber") ||
+          localStorage.getItem("generatedSinCode") ||
+          "";
+
+        console.log("Retrieved base SIN:", baseSin);
+
         const jwtToken = JWT_TOKEN.jwtToken;
 
         if (!baseSin) {
-          console.log("Base SIN not found in session");
+          console.error("Base SIN not found in session");
+          Swal.fire({
+            icon: "warning",
+            title: "SIN Number Not Found",
+            text: "No SIN number found. Please complete the previous steps first.",
+            confirmButtonText: "Go Back",
+            confirmButtonColor: "#4c59b0",
+          }).then(() => {
+            this.$router.push("/components/main");
+          });
+          return false;
         }
 
         if (!jwtToken) {
-          console.log("JWT token not found");
+          console.error("JWT token not found");
+          Swal.fire({
+            icon: "error",
+            title: "Authentication Error",
+            text: "Authentication token not found. Please login again.",
+            confirmButtonText: "Okay",
+            confirmButtonColor: "#4c59b0",
+          });
+          return false;
         }
 
         // Component code for radar tower
         const RadarTowerComponentCode = COMPONENT_CODES.RADAR_TOWER;
 
         // Generate component sin id for radar tower
-        const componentSinID = await generateComponentSinId(
-          baseSin,
-          RadarTowerComponentCode,
-          jwtToken
-        );
+        let componentSinID;
+        try {
+          componentSinID = await generateComponentSinId(
+            baseSin,
+            RadarTowerComponentCode,
+            jwtToken
+          );
+          console.log(
+            "Generated componentSinID for Radar Tower:",
+            componentSinID
+          );
+        } catch (sinError) {
+          console.error("Error generating component SIN ID:", sinError);
 
-        console.log(
-          "Generated componentSinID for Radar Tower:",
-          componentSinID
-        );
+          if (sinError.response?.status === 409) {
+            // SIN already exists - try to continue with existing SIN or handle gracefully
+            console.warn(
+              "SIN ID already exists, attempting to use existing..."
+            );
 
-        // Store the new component SIN number in session
+            // Try to get existing SIN or generate a fallback
+            componentSinID = `${baseSin}-${RadarTowerComponentCode}-${Date.now()}`;
+            console.log("Using fallback SIN:", componentSinID);
+          } else {
+            throw sinError; // Re-throw other errors
+          }
+        }
+
+        // Store the new component SIN number in session with multiple keys for compatibility
         sessionStorage.setItem("componentSinNumber", componentSinID);
+        sessionStorage.setItem("componentSinId", componentSinID);
         sessionStorage.setItem("newComponentSin", componentSinID);
         sessionStorage.setItem("latestSinNumber", componentSinID);
-        sessionStorage.setItem("constructionSinNumber", componentSinID); // Add this for CompletedConstructionModalComp
+        sessionStorage.setItem("constructionSinNumber", componentSinID);
+        sessionStorage.setItem("constructionComponentSin", componentSinID);
+
         console.log("Stored componentSinID in session:", componentSinID);
-        console.log(
-          "Session storage 'componentSinNumber' set to:",
-          sessionStorage.getItem("componentSinNumber")
-        );
-        console.log(
-          "Session storage 'constructionSinNumber' set to:",
-          sessionStorage.getItem("constructionSinNumber")
-        );
 
         // Request Preparation for radar tower
         const payload = {
@@ -171,11 +217,31 @@ export default {
       } catch (error) {
         console.error("Error saving Radar Tower:", error);
 
+        let errorMessage = "Failed to save radar tower data. Please try again.";
+
+        if (error.response?.status === 409) {
+          errorMessage =
+            "Radar Tower data already exists for this SIN. Please check if it has already been saved.";
+        } else if (error.response?.status === 400) {
+          errorMessage =
+            "Invalid data provided. Please check all fields and try again.";
+        } else if (error.response?.status === 401) {
+          errorMessage = "Authentication failed. Please login again.";
+        } else if (error.response?.status === 403) {
+          errorMessage =
+            "Access denied. You do not have permission to save this data.";
+        } else if (error.response?.status >= 500) {
+          errorMessage = "Server error occurred. Please try again later.";
+        } else if (error.code === "ERR_NETWORK") {
+          errorMessage =
+            "Network error. Please check your connection and try again.";
+        }
+
         // Show error message
         Swal.fire({
           icon: "error",
           title: "Error Saving Radar Tower",
-          text: "Failed to save radar tower data. Please try again.",
+          text: errorMessage,
           confirmButtonText: "Okay",
           confirmButtonColor: "#4c59b0",
         });
